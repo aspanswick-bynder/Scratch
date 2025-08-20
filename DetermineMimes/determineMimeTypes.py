@@ -190,6 +190,7 @@ def main():
     for infile, potential_outfile, valid_outfile, invalid_outfile in files_envs:
         actual_file = find_file(infile)
         total_count += sum_counts(actual_file)
+        print(f"Total count for {extract_env(infile)}: {sum_counts(actual_file)}")
         if actual_file:
             process_counts(actual_file, potential_outfile, valid_outfile, invalid_outfile)
         else:
