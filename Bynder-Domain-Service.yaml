@@ -1,0 +1,376 @@
+openapi: "3.1.0"
+info:
+  title: Bynder Domain Service API
+  version: "1.0"
+
+servers:
+  - url: https://api.example.com
+
+paths:
+  /admin/service:
+    post:
+      summary: Create a new service
+      description: Creates a new service, assigns a service ID (UUID), name (in request), and returns a private key and version.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateServiceRequest'
+      responses:
+        "201":
+          description: "Service created successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateServiceResponse'
+        "400":
+          description: "Bad request, invalid input"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/BadRequestError'
+        "409":
+          description: "Conflict, service already exists"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/ConflictError'
+        "500":
+          description: "Internal server error, unexpected issue"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/BadRequestError'
+
+  /admin/key:
+    post:
+      summary: Create a new key pair
+      description: "Create a new key pair. Returns the private key and version."
+      security:
+        - BynderServiceToken: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateKeyRequest'
+      responses:
+        "201":
+          description: "New key pair created successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateKeyResponse'
+        "400":
+          description: "Bad request, invalid input"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/BadRequestError'
+        "401":
+          description: "Unauthorized, access token is missing or invalid"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/UnauthorizedError'
+        "409":
+          description: "Conflict, key pair already exists"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/ConflictError'
+        "500":
+          description: "Internal server error, unexpected issue"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/BadRequestError'
+
+  /admin/removekey:
+    post:
+      summary: Remove a key
+      description: "Remove a key by version and service ID."
+      security:
+        - BynderServiceToken: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RemoveKeyRequest'
+      responses:
+        "200":
+          description: "Key pair removed successfully"
+        "400":
+          description: "Bad request, invalid input"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/BadRequestError'
+        "401":
+          description: "Unauthorized, access token is missing or invalid"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/UnauthorizedError'
+        "404":
+          description: "Not found, key pair does not exist"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/NotFoundError'
+        "500":
+          description: "Internal server error, unexpected issue"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/BadRequestError'
+
+  /key:
+    get:
+      summary: Retrieve a public key
+      description: "Retrieve a public key for a service"
+      security:
+        - BynderServiceToken: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetKeyRequest'
+      responses:
+        "200":
+          description: "Public key retrieved successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetKeyResponse'
+        "400":
+          description: "Bad request, invalid input"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/BadRequestError'
+        "401":
+          description: "Unauthorized, access token is missing or invalid"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/UnauthorizedError'
+        "404":
+          description: "Not found, service or key does not exist"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/NotFoundError'
+        "500":
+          description: "Internal server error, unexpected issue"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/BadRequestError'
+
+  /keys:
+    get:
+      summary: Retrieve all public keys
+      description: "Retrieve all public keys for a service"
+      security:
+        - BynderServiceToken: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetAllKeysRequest'
+      responses:
+        "200":
+          description: "All public keys retrieved successfully"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetAllKeysResponse'
+        "400":
+          description: "Bad request, invalid input"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/BadRequestError'
+        "401":
+          description: "Unauthorized, access token is missing or invalid"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/UnauthorizedError'
+        "404":
+          description: "Not found, service does not exist or does not have any keys"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/NotFoundError'
+        "500":
+          description: "Internal server error, unexpected issue"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/responses/BadRequestError'
+
+components:
+  securitySchemes:
+    BynderServiceToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        JWT containing the service UUID and key version in the payload. Both fields are strings:
+        {
+          "serviceId": "uuid",
+          "version": "1"
+        }
+
+  schemas:
+    CreateServiceRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: Human-readable name for the service
+
+    CreateServiceResponse:
+      type: object
+      required:
+        - serviceId
+        - name
+        - privateKey
+        - version
+      properties:
+        serviceId:
+          type: string
+          format: uuid
+          description: UUID assigned to the newly created service
+        name:
+          type: string
+          description: Human-readable name for the service
+        privateKey:
+          type: string
+          format: pem
+          description: PEM-encoded private key for the service
+        version:
+          type: string
+          description: Initial version number of the key pair
+
+    CreateKeyRequest:
+      type: object
+      required:
+        - serviceId
+        - version
+      properties:
+        serviceId:
+          type: string
+          format: uuid
+          description: UUID for the service
+        version:
+          type: string
+          description: Key version
+
+    CreateKeyResponse:
+      type: object
+      required:
+        - publicKey
+        - version
+      properties:
+        privateKey:
+          type: string
+          format: pem
+          description: PEM-encoded private key for the service
+        version:
+          type: string
+          description: Initial version number of the key pair
+
+    RemoveKeyRequest:
+        type: object
+        required:
+            - serviceId
+            - version
+        properties:
+            serviceId:
+              type: string
+              format: uuid
+              description: UUID for the service
+            version:
+              type: string
+              description: Key version to be removed
+
+    GetKeyRequest:
+      type: object
+      required:
+        - serviceId
+      properties:
+        serviceId:
+          type: string
+          format: uuid
+          description: UUID for the service whose public key is being retrieved
+        version:
+          type: string
+          description: Key version to retrieve. If not provided, the latest version will be returned.
+
+    GetKeyResponse:
+      type: object
+      required:
+        - publicKey
+      properties:
+        publicKey:
+          type: string
+          format: pem
+          description: PEM-encoded public key for the service
+        version:
+          type: string
+          description: Version of the key pair being retrieved
+
+    GetAllKeysRequest:
+      type: object
+      required:
+        - serviceId
+      properties:
+        serviceId:
+          type: string
+          format: uuid
+          description: UUID for the service whose public key is being retrieved
+
+    GetAllKeysResponse:
+        type: object
+        required:
+            - keys
+        properties:
+            keys:
+              type: array
+              items:
+                type: object
+                properties:
+                  publicKey:
+                    type: string
+                    format: pem
+                    description: PEM-encoded public key for the service
+                  version:
+                    type: string
+                    description: Version of the key pair
+            serviceId:
+              type: string
+              format: uuid
+              description: UUID of the service whose keys are being retrieved
+
+  responses:
+    NotFoundError:
+      description: The specified resource was not found.
+
+    UnauthorizedError:
+      description: Access token is missing or invalid
+
+    ConflictError:
+      description: The request could not be completed due to a conflict with the current state of the resource.
+
+    BadRequestError:
+      description: The request was invalid or cannot be otherwise served. An accompanying error message will explain further.
+
